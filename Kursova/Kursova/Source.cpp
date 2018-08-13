@@ -1,19 +1,120 @@
 ﻿#include <windows.h>
 #include <iostream>
 #include <conio.h>
-#include <iomanip>
-#include <sstream>
 #include <string>
 #include <ctime>
 #include <vector>
 #include <fstream>
 #include <iomanip>
-#include <initializer_list>
-#include <Wincrypt.h>
 #include <regex>
 using namespace std;
 
 
+HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
+CONSOLE_SCREEN_BUFFER_INFO csbInfo;
+
+void cl() {
+	system("cls");
+}
+
+void gotoxy(const int &x, const int &y) {
+	COORD coordinates = { x, y };
+	HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	SetConsoleCursorPosition(outputHandle, coordinates);
+}
+
+void gotoxy(const POINT &pos) {
+	gotoxy(pos.x, pos.y);
+}
+
+int GetBufferChars() {
+	GetConsoleScreenBufferInfo(hCon, &csbInfo);
+	return csbInfo.srWindow.Right - csbInfo.srWindow.Left;
+
+}
+
+int GetBufferCharsbot() {
+	GetConsoleScreenBufferInfo(hCon, &csbInfo);
+	return csbInfo.srWindow.Bottom - csbInfo.srWindow.Top;
+}
+
+POINT consoleSize = { GetBufferChars() , GetBufferCharsbot() };
+
+
+void SetVisibleCursor(const bool &rst) {
+	CONSOLE_CURSOR_INFO structCursorInfo;
+	GetConsoleCursorInfo(hCon, &structCursorInfo);
+	structCursorInfo.bVisible = rst;
+	SetConsoleCursorInfo(hCon, &structCursorInfo);
+
+
+}
+
+const POINT GetPosCur() {
+	POINT pos;
+	CONSOLE_SCREEN_BUFFER_INFO bi;
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &bi);
+	pos.x = bi.dwCursorPosition.X;
+	pos.y = bi.dwCursorPosition.Y;
+	return pos;
+}
+
+void clearToPos(int x, int y) {
+	POINT current_pos = GetPosCur();
+	while (current_pos.y >= y)
+	{
+		if (current_pos.y > y) {
+			gotoxy(0, current_pos.y);
+			for (int i = 0; i < consoleSize.x; i++)
+			{
+				cout << '\0';
+			}
+		}
+		else if (current_pos.y == y) {
+			gotoxy(x, current_pos.y);
+			if (current_pos.x != x) for (int i = 0; i <= consoleSize.x - x; i++)
+			{
+				cout << '\0';
+			}
+		}
+
+		current_pos.y--;
+	}
+	gotoxy(x, y);
+}
+
+void clearLine(const int &s = 0) {
+	POINT pos = GetPosCur();
+	for (int i = 0; i < consoleSize.x - pos.x - s; i++)
+	{
+		cout << '\0';
+	}
+	gotoxy(pos);
+}
+
+void clearToPos(POINT t) {
+	clearToPos(t.x, t.y);
+}
+
+bool SetColorConsole(const int textColor = 7, const int background = 0) {
+	if (textColor > -1 && textColor < 16 && background > -1 && background < 16) {
+		SetConsoleTextAttribute(hCon, (WORD)((background << 4) | textColor));
+		return true;
+	}
+	else return false;
+}
+
+void FullLine(char a, int font = 7, int back = 0) {
+	SetConsoleTextAttribute(hCon, (WORD)((back << 4) | font));
+	int _chars = consoleSize.x;
+	for (int i = 0; i < _chars; i++)
+	{
+		cout << a;
+	}
+	cout << endl;
+	SetConsoleTextAttribute(hCon, (WORD)((0 << 4) | 7));
+}
 
 int countSym(string str, char sym) { // функцiя для пiдрахування кiлькостi символiв
 	int r = 0;
@@ -224,7 +325,6 @@ public:
 
 AllCategory ACtg;
 
-
 class Product { // Продук
 	string name; // iмя
 	Date termOfConsumption; // Термiн споживання
@@ -364,17 +464,29 @@ public:
 	}
 };
 
+class Shop;
+
 class Permission {
 	string name, InMenu, message, nameMenu;
 	bool permission = false;
 	int countOfPidPerm = 0;
+	
 public:
+	string(*func)(Shop &shop) = NULL;
 	Permission * permissions = nullptr;
 	Permission * nadPermission = nullptr;
 	Permission() {};
 	Permission(const string &name, const string &InMenu) {
 		SetName(name);
 		SetInMenu(InMenu);
+	}
+
+	Permission(const string &name, const string &InMenu, string(*func)(Shop &shop)) {
+		SetName(name);
+		SetInMenu(InMenu);
+		if (func != nullptr) {
+			this->func = func;
+		}
 	}
 
 	Permission(const string &name) {
@@ -527,6 +639,11 @@ public:
 	}*/
 };
 
+string AddNewCategory(Shop &shop);
+string RenameCategoryOfProducts(Shop &shop);
+string DeleteCategory(Shop &shop);
+string AddPidCadegory(Shop &shop);
+
 class TypeOfTrader /*Тип працiвника*/ {
 
 	string name; // iмя типу працiвника
@@ -555,36 +672,36 @@ public:
 				{ string("дозвiл на редагування iменi продукту") , string("Редагувати iм'я продукту") },
 				{ string("дозвiл на покупку продукту") , string("Пробити продукт на кассi") },
 				{ string("дозвiл на редагування категорiй продуктiв"), string("Ви в меню редагування категорiй продуктiв"), string("Меню редагування категорiй продуктiв"), string("Редагувати категорiї продуктiв"), 4, new Permission[4]{
-					{ string("дозвiл на додавання нової категорiї продуктiв") , string("Додати нову категорiю продуктiв") },
-					{ string("дозвiл на переiменування категорiї продуктiв") , string("Перейменувати категорiю продуктiв") },
-					{ string("дозвiл на видалення категорiї продуктiв"), string("Видалити категорiю продуктiв") },
+					{ string("дозвiл на додавання нової категорiї продуктiв") , string("Додати нову категорiю продуктiв") , &AddNewCategory },
+					{ string("дозвiл на переiменування категорiї продуктiв") , string("Перейменувати категорiю продуктiв") , &RenameCategoryOfProducts},
+					{ string("дозвiл на видалення категорiї продуктiв"), string("Видалити категорiю продуктiв"), &DeleteCategory },
 					{ string("дозвiл на редагування пiд категорiї продуктiв"), string("Ви в меню редагування пiд категорiй продуктiв"), string("Меню редагування пiд кактегорiй продуктiв"), string("Редагувати пiд категорiї продуктiв") , 3, new Permission[4]{
-						{ string("дозвiл на додавання пiд категорiяй продуктiв"), string("Додати пiд категорiю продуктiв") },
+						{ string("дозвiл на додавання пiд категорiяй продуктiв"), string("Додати пiд категорiю продуктiв") , &AddPidCadegory },
 						{ string("дозвiл на видалення пiд категорiяй продуктiв"), string("Видалити пiд категорiю продуктiв") },
 						{ string("дозвiл на перейменування пiд категорiяй продуктiв"), string("Перейменувати пiд категорiю продуктiв") }
 					}},
 				}}
 			}
 		},
-		{string("дозвiл на редагування працiвникiв"), string("Редагувати працiвникiв"), 7, new Permission[7]{
-			{ string("дозвiл на редагування ПiБ працiвника"), 3, new Permission[3]{
-				{ string("дозвiл на редагування iменi працiвника") },
-				{ string("дозвiл на редагування прiзвища працiвника") },
-				{ string("дозвiл на редагування по батьковi працiвника") }
+		{string("дозвiл на редагування працiвникiв"), string("Ви в меню редагування працiвникiв!"), string("Меню редагування працiвникiв"), string("Редагувати працiвникiв"), 7, new Permission[7]{
+			{ string("дозвiл на редагування ПiБ працiвника"), string("Ви в меню редагування ПiБ працiвника"), string("Меню редагування ПiБ працiвника"), string("Редагувати ПiБ працiвника"), 3, new Permission[3]{
+				{ string("дозвiл на редагування iменi працiвника"), string("Редагувати iм'я працiвника") },
+				{ string("дозвiл на редагування прiзвища працiвника"), string("Редагувати прiзвище працiвника") },
+				{ string("дозвiл на редагування по батьковi працiвника"), string("Редагувати по батьковi прцiвника") }
 			}},
-			{ string("дозвiл на редагування пароля працiвника") },
-			{ string("дозвiл на редагування емейла працiвника") },
-			{ string("дозвiл на редагування дати народження працiвника") , 3, new Permission[3]{
-				{ string("дозвiл на редагування дня народження") },
-				{ string("дозвiл на редагування мiсяця народження") },
-				{ string("дозвiл на редагування року народження") }
+			{ string("дозвiл на редагування пароля працiвника"), string("Редагування пароль працiвника") },
+			{ string("дозвiл на редагування емейла працiвника"), string("Редагувати емейл працiвника") },
+			{ string("дозвiл на редагування дати народження працiвника"), string("Ви в меню редагування датит народження працiвника!"), string("Меню редагування дати народження працiвника"), string("Редагувати дату народження працiвника") , 3, new Permission[3]{
+				{ string("дозвiл на редагування дня народження"), string("Редагувати день народження працiвника") },
+				{ string("дозвiл на редагування мiсяця народження"), string("Редагувати мiсяць народження працiвника") },
+				{ string("дозвiл на редагування року народження") , string("Редагувати рiк народження працiвника")}
 			}},
-			{ string("дозвiл на додавання новох працiвникiв") },
-			{ string("дозвiл на звiльнення працiвникiв") },
-			{ string("дозвiл на редагування типiв працiвникiв") , 3, new Permission[3]{
-				{ string("дозвiл на редагування iменi типу працiвника") },
-				{ string("дозвiл на редагування зарплати типу працiвника") },
-				{ string("дозвiл на редагування дозволiв"), 2, new Permission[2]{
+			{ string("дозвiл на додавання новох працiвникiв") , string("Додати нового працiвника") },
+			{ string("дозвiл на звiльнення працiвникiв") , string("Звiльнитит працiвникiв") },
+			{ string("дозвiл на редагування типiв працiвникiв") , string("Ви в меню редагування типiв працiвникiв"), string("Меню редагування типiв працiвникiв"), string("Редагувати типи працiвникiв"), 3, new Permission[3]{
+				{ string("дозвiл на редагування iменi типу працiвника") , string("Редагувати iм'я типу працiвника") },
+				{ string("дозвiл на редагування зарплати типу працiвника") , string("Редагувати зарплату  типу працiвника") },
+				{ string("дозвiл на редагування дозволiв"), string("Ви в меню редагування дозволiв типу працiвника"), string("Меню редагувння дозволiв типу працiвника"), string("Редагувати дозволи типу працiвника"), 2, new Permission[2]{
 						{string("дозвiл на дозвiл на редагування продуктiв"), 9 , new Permission[9]{
 							{ string("дозвiл на дозвiл на додавння продуктiв") },
 							{ string("дозвiл на дозвiл на редактування кiлькостi продукту") },
@@ -610,7 +727,7 @@ public:
 							}}
 						}
 					},
-					{string("дозвiл на дозвiл на редагування працiвникiв"), 7, new Permission[7]{
+					{string("дозвiл на редагування дозволу на редагування працiвникiв"), 7, new Permission[7]{
 						{ string("дозвiл на дозвiл на редагування ПiБ працiвника"), 3, new Permission[3]{
 							{ string("дозвiл на дозвiл на редагування iменi працiвника") },
 							{ string("дозвiл на дозвiл на редагування прiзвища працiвника") },
@@ -984,266 +1101,83 @@ public:
 class Shop {
 	AllProducts products;
 	AllTraders traders;
-	friend void Init(Shop &shop);
-	friend void InitLLC(Shop &shop);
 public:
 
 	Trader * LogIn(const string &email, const string &pass) {
 		return traders.LogIn(email, pass);
 	}
+
+	// Friends
+
+	friend void Init(Shop &shop);
+	friend void InitLLC(Shop &shop);
 };
 
-
-
-// Work With text
-
-HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
-CONSOLE_SCREEN_BUFFER_INFO csbInfo;
-
-void cl() {
-	system("cls");
-}
-
-void gotoxy(int x, int y) {
-	COORD coordinates = { x, y };
-	HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	SetConsoleCursorPosition(outputHandle, coordinates);
-}
-
-int GetBufferChars() {
-	GetConsoleScreenBufferInfo(hCon, &csbInfo);
-	return csbInfo.srWindow.Right - csbInfo.srWindow.Left;
-
-}
-
-int GetBufferCharsbot() {
-	GetConsoleScreenBufferInfo(hCon, &csbInfo);
-	return csbInfo.srWindow.Bottom - csbInfo.srWindow.Top;
-}
-
-void SetVisibleCursor(const bool &rst) {
-	CONSOLE_CURSOR_INFO structCursorInfo;
-	GetConsoleCursorInfo(hCon, &structCursorInfo);
-	structCursorInfo.bVisible = rst;
-	SetConsoleCursorInfo(hCon, &structCursorInfo);
-
-
-}
-
-POINT consoleSize = { GetBufferChars() , GetBufferCharsbot() };
-
-const POINT GetPosCur() {
-	POINT pos;
-	CONSOLE_SCREEN_BUFFER_INFO bi;
-	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &bi);
-	pos.x = bi.dwCursorPosition.X;
-	pos.y = bi.dwCursorPosition.Y;
-	return pos;
-}
-
-void clearToPos(int x, int y) {
-	POINT current_pos = GetPosCur();
-	while (current_pos.y >= y)
-	{
-		if (current_pos.y > y) {
-			gotoxy(0, current_pos.y);
-			for (int i = 0; i < consoleSize.x; i++)
-			{
-				cout << '\0';
-			}
-		}
-		else if (current_pos.y == y) {
-			gotoxy(x, current_pos.y);
-			if (current_pos.x != x) for (int i = 0; i <= consoleSize.x - x; i++)
-			{
-				cout << '\0';
-			}
-		}
-
-		current_pos.y--;
-	}
-	gotoxy(x, y);
-}
-
-void clearToPos(POINT t) {
-	clearToPos(t.x, t.y);
-}
-
-bool SetColorConsole(const int textColor = 7, const int background = 0) {
-	if (textColor > -1 && textColor < 16 && background > -1 && background < 16) {
-		SetConsoleTextAttribute(hCon, (WORD)((background << 4) | textColor));
-		return true;
-	}
-	else return false;
-}
-
-void FullLine(char a, int font = 7, int back = 0) {
-	SetConsoleTextAttribute(hCon, (WORD)((back << 4) | font));
-	int _chars = GetBufferChars();
-	for (int i = 0; i < _chars; i++)
-	{
-		cout << a;
-	}
-	cout << endl;
-	SetConsoleTextAttribute(hCon, (WORD)((0 << 4) | 7));
-}
-
 void printHeader(const string& str) {
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 1; i++) cout << '\0';
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 1; i++) cout << '\0';
 	cout << char(201);
 	for (int i = 0; i < str.size(); i++) cout << char(205);
 	cout << char(187);
 	cout << endl;
 	
 	cout << char(201);
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 2; i++) cout << char(205);
-	string rr = setlocale(LC_ALL, NULL);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
+	UINT rr = GetConsoleCP();
 	
 	cout << char(185);
-	setlocale(LC_ALL, "Russian");
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
 	cout << str;
-	setlocale(LC_ALL, rr.c_str());
+	SetConsoleCP(rr);
+	SetConsoleOutputCP(rr);
 	cout << char(204);
 
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 1; i++) cout << char(205);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
 	cout << char(187);
 	cout << endl;
 
 	cout << char(204);
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 2; i++) cout << char(205);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
 	cout << char(202);
 	for (int i = 0; i < str.size(); i++) cout << char(205);
 	cout << char(202);
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 1; i++) cout << char(205);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
 	cout << char(185);
 	cout << endl;
 }
 
-void printLine(const string & str, int size = GetBufferChars(),const int textColor = 7, const int background = 0) {
-	SetColorConsole(textColor, background); // Зміна кольору консолі 15 колір тла, 0 колір тексту
-	for (int i = 0; i < (size - str.size()) / 2; i++) cout << " "; // Виведення відступу
-	string rr = setlocale(LC_ALL, NULL);
-	setlocale(LC_ALL, "Russian");
+void printLine(const string & str, int size = consoleSize.x,const int textColor = 7, const int background = 0) {
+	SetColorConsole(textColor, background); // Змiна кольору консолi 15 колiр тла, 0 колiр тексту
+	for (int i = 0; i < (size - str.size()) / 2; i++) cout << " "; // Виведення вiдступу
+	UINT rr = GetConsoleCP();
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
 	cout << str;
-	setlocale(LC_ALL, rr.c_str());
-	for (int i = 0; i < (size - str.size()) / 2 + 1; i++) cout << " "; // виведення другого відступу
-	SetColorConsole(); // Певернення консолі до початкового стану
-	cout << endl;
+	SetConsoleCP(rr);
+	SetConsoleOutputCP(rr);
+	for (int i = 0; i < (size - str.size()) / 2 + 1; i++) cout << " "; // виведення другого вiдступу
+	SetColorConsole(); // Певернення консолi до початкового стану
 }
 
-//int ShowMenu(vector<string *> *menu) {
-//
-//	const int speedOpen = 100;
-//
-//	static bool
-//		exit = false, // Флажок для виходу з програми
-//		opened = false, // Флажок положення меню
-//		opened_show = false, // Флажок положення меню зараз
-//		reload = true; // Флажок для перерисовки
-//	static int 
-//		selected = 0, // Вибраний пункт меню 
-//		selected_show = 0; // Пункт меню який показаний на екранi
-//	char act; // Нажата кнопка
-//	if (reload) { // Перевiряєм чи флажо перерисовки true
-//		if (opened) { // Перевiряєм чи флажок положення меню true
-//			if (!opened_show) { // Перевiряєм чи вiдкрите меню виведене на екран
-//	
-//				for (int i = 0; i < menu->size(); i++) // По кадрово виводимо вiдкрите меню меню
-//				{
-//					gotoxy(consoleSize.x, consoleSize.y - i); // Перемiщаємося в кiнець останнього рядка - i
-//					clearToPos(0, consoleSize.y - i); // Очищаємо останнiй рядок - i
-//					printLine(consoleSize.y - i - 1, "\1", 0, 15); // Виводимо лiнiю зi стрiлкою
-//
-//					for (int s = 0; s <= i; s++) // Потроху виводимо елементи массиву menu
-//					{
-//						if ((i - s) != selected) printLine(consoleSize.y - s, *(*menu)[s]);
-//						else printLine(consoleSize.y - s, ">>> " + *(*menu)[s] + " <<<");
-//
-//					}
-//					gotoxy(0, 0); // Перемiщаємось на самий початок
-//					Sleep(speedOpen / menu->size()); // Пауза
-//				}
-//			}
-//			else if (selected != selected_show){ // Перевiряєм чи вибраний елемент массиву menu виведений на еран 
-//				printLine(consoleSize.y - (menu->size() - 1 - selected_show), *(*menu)[selected_show]); // Переписуєму строку там де був вибраний елемент
-//				printLine(consoleSize.y - (menu->size() - 1 - selected), ">>> " + *(*menu)[selected] + " <<<"); // Переписуємо строку там де має бути вибраний елемент
-//				selected_show = selected; // Вибранийбункт є на еранi
-//				gotoxy(0, 0); // Перемiщаємося на самий початок
-//			}
-//			opened_show = opened; // Вiдкрите меню виведене на екран
-//		}
-//		else { // Перевiряєм чи флажок положення меню false
-//			if (!opened_show) { // Перевiряєм чи флажок виведеного меню false
-//				printLine(consoleSize.y, "\1", 0, 15); // Виводимо лiнiю зi стрiлкою
-//				gotoxy(0, 0); // Перемiщаємось на самий початок
-//			}
-//			else { // Якщо флажок виведеного меню true
-//				for (int i = menu->size() -1; i >= 0; i--)
-//				{
-//					gotoxy(consoleSize.x, consoleSize.y - i-1); // Перемiщаємося в кiнець останнього рядка - i
-//					clearToPos(0, consoleSize.y - i - 1); // Очищаємо останнiй рядок - i
-//					printLine(consoleSize.y - i, "\1", 0, 15); // Виводимо лiнiю зi стрiлкою
-//					gotoxy(0, 0); // Перемiщаємось на самий початок
-//					Sleep(speedOpen / menu->size()); // Пауза
-//
-//				}
-//				
-//			}
-//			opened_show = opened;// Закрите меню виведене на екран
-//		}
-//		reload = false; // Флажок перерисовки false
-//		
-//	}
-//	act = _getch(); // Нажата кнопка
-//	switch (act)
-//	{
-//	case 13:
-//		return selected;
-//		break;
-//	case 80:
-//		
-//		
-//		if (opened) {
-//			if (selected < menu->size() - 1) selected++;
-//			else selected = 0;
-//			reload = true;
-//		}
-//		break;
-//	case 72:
-//		if (opened) {
-//			if (selected > 0) selected--;
-//			else selected = menu->size() - 1;
-//			reload = true;
-//		}
-//		break;
-//	case 27:
-//		if (!opened) opened = true;
-//		else opened = false;
-//		reload = true;
-//	}
-//	return -1;
-//}
-
-int CoutMenu(vector<string *> *menus) {
+int CoutMenu(vector<string> *menus) {
 	char ch = 0;
 	int selected = 1, cout_selected = 0;
 	POINT startCout = GetPosCur();
 	
 	for (int i = 0; i < menus->size(); i++) {
 		cout << char(186);
-		printLine(*(*menus)[i], GetBufferChars() - 2);
-		gotoxy(GetBufferChars() - 1, startCout.y + (i * 2));
-		cout << char(185);
+		printLine((*menus)[i], consoleSize.x - 3);
+		gotoxy(consoleSize.x - 2, startCout.y + (i * 2));
+		cout << char(186);
 		cout << endl;
 		if (menus->size() - 1 != i) {
 			cout << char(199);
-			for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(196);
+			for (int i = 0; i < consoleSize.x - 3; i++) cout << char(196);
 			cout << char(182);
 		}
 		else {
 			cout << char(200);
-			for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(205);
+			for (int i = 0; i < consoleSize.x - 3; i++) cout << char(205);
 			cout << char(188);
 		}
 		cout << endl;
@@ -1252,13 +1186,13 @@ int CoutMenu(vector<string *> *menus) {
 	{
 		if (selected != cout_selected) {
 			gotoxy(1, startCout.y + (cout_selected*2));
-			printLine(*(*menus)[cout_selected], GetBufferChars() - 2);
+			printLine((*menus)[cout_selected], consoleSize.x - 3);
 			gotoxy(1, startCout.y + (selected*2));
-			printLine(*(*menus)[selected], GetBufferChars() - 2, 0, 15);
+			printLine((*menus)[selected], consoleSize.x - 3, 0, 15);
 			cout_selected = selected;
 			for (int i = 0; i < menus->size(); i++)
 			{
-				gotoxy(GetBufferChars() - 1, startCout.y + (i * 2));
+				gotoxy(consoleSize.x - 2, startCout.y + (i * 2));
 				cout << char(186);
 			}
 		}
@@ -1278,92 +1212,114 @@ int CoutMenu(vector<string *> *menus) {
 	return selected;
 }
 
-//class Edit {
-//	string in;
-//	POINT posSt;
-//public:
-//	char(*sym)(const char&, const string&) = nullptr;
-//	bool(*isOk)(const string&) = nullptr;
-//	string GetTextClear(const string &osm, const char &source, const bool &pass = 0) {
-//		FullLine(source);
-//		cout << "-" << osm;
-//		posSt = GetPosCur();
-//		cout << endl;
-//		FullLine(source);
-//		gotoxy(posSt.x, posSt.y);
-//		char symGet = 0;
-//		while (true) {
-//			symGet = _getch();
-//			if (sym != nullptr) {
-//				symGet = sym(symGet, in);
-//			}
-//			if (symGet > 0) {
-//				if (symGet != 8 && symGet != 13 && GetPosCur().x < GetBufferChars()) {
-//					in += symGet;
-//					if (pass!) cout << symGet;
-//				}
-//				else if (symGet == 8 && GetPosCur().x > posSt.x) {
-//					if (pass!) cout << symGet << '\0' << symGet;
-//					in.pop_back();
-//				}
-//				else if (symGet == 13) {
-//					if (isOk != nullptr) {
-//						try
-//						{
-//							isOk(in);
-//						}
-//						catch (const char * r)
-//						{
-//							gotoxy(GetBufferChars(), posSt.y);
-//							clearToPos(0, posSt.y);
-//							cout << source << r << source << osm;
-//							posSt = GetPosCur();
-//						}
-//					}
-//					else break;
-//				}
-//			}
-//		}
-//		gotoxy(0, posSt.y + 2);
-//		return in;
-//	}
-//};
-
 void SetAll(Permission *pr) {
 	for (int i = 0; i < pr->GetCountOfPidPermissions(); i++) SetAll(&(pr->permissions[i]));
 	pr->SetPermission(true);
 }
 
+string GetLine(POINT pos = GetPosCur(), string in = "",const int &count = 0, const bool &pass = false) {
+	gotoxy(pos.x, pos.y);
+	SetVisibleCursor(true);
+	int symGet;
+	UINT rr = GetConsoleCP();
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	if (!pass) cout << in;
+	else for (int i = 0; i < in.size(); i++) cout << '*';
+	while (true) {
+		//scanf_s("%c", &symGet);
+		symGet = _getch();
+		if (symGet > 0) {
+			if (symGet != 8 && symGet != 13 && (in.size() < count || count == 0)) {
+				in += char(symGet);
+				if (!pass) cout << char(symGet);
+				else cout << "*";
+			}
+			else if (symGet == 8 && in.size() > 0) {
+				cout << char(symGet) << '\0' << char(symGet);
+				in.pop_back();
+			}
+			else if (symGet == 13) break;
+			
+		}
+	}
+	SetVisibleCursor(false);
+	SetConsoleCP(rr);
+	SetConsoleOutputCP(rr);
+	return in;
+}
+
+POINT BoxGet(const string &str) {
+	POINT pos;
+	UINT rr = GetConsoleCP();
+	cout << char(186);
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	cout << str;
+	SetConsoleCP(rr);
+	SetConsoleOutputCP(rr);
+	cout << char(186) << ' ';
+	pos = GetPosCur();
+	cout << endl;
+	cout << char(200);
+	for (int i = 0; i < consoleSize.x - 2; i++) cout << char(205);
+	cout << char(188);
+	gotoxy(pos.x - 2, pos.y - 1);
+	cout << char(203);
+	gotoxy(pos.x - 2, pos.y + 1);
+	cout << char(202);
+	
+	gotoxy(consoleSize.x - 1, pos.y);
+	cout << char(186);
+	gotoxy(pos.x, pos.y);
+	return pos;
+}
+
 Trader * LogIn(Shop &shop) {
 	Trader * ret = nullptr;
-	POINT pos;
+	POINT pos, pp, pr;
 	string pass;
 	string email;
-	cout << ":: Log to base ::" << endl;
+	UINT rr = GetConsoleCP();
+	gotoxy(0, 0);
+	printHeader("Вхiд до бази данних");
+	pp = GetPosCur();
+	pr = GetPosCur();
 	do
 	{
+		gotoxy(0, 0);
+		printHeader("Вхiд до бази данних");
+		gotoxy(pp.x, pp.y);
 		{
 			Trader rr;
-			cout << "Input your email: ";
-			pos = GetPosCur();
+			pos = BoxGet("Введiть емейл ");
 			do
 			{
-				clearToPos(pos);
-				getline(cin, email);
+				email = GetLine(pos, email, consoleSize.x - GetPosCur().x - 1);
 			} while (!rr.IsOkEmail(email));
 		}
 
-		cout << "Input your password: ";
-		pos = GetPosCur();
+		gotoxy(pp.x, pp.y);
+		pos = BoxGet("Введiть пароль");
 		do
 		{
-			clearToPos(pos);
-			getline(cin, pass);
+			pass = GetLine(pos, pass, consoleSize.x - GetPosCur().x - 1, true);
 		} while (pass.size() < 1);
 		ret = shop.LogIn(email, pass);
-		cl();
 		if (ret == nullptr) {
-			cout << "Incorrect email or password!" << endl;
+			gotoxy(pr.x, pr.y);
+			cout << char(186);
+			SetConsoleCP(1251);
+			SetConsoleOutputCP(1251);
+			printLine("Неправильний емейл або пароль!", consoleSize.x - 3, 12);
+			SetConsoleCP(rr);
+			SetConsoleOutputCP(rr);
+			gotoxy(consoleSize.x-1, GetPosCur().y);
+			cout << char(186) << endl << char(204);
+			for (int i = 0; i < consoleSize.x - 2; i++) cout << char(205);
+			cout << char(185);
+			cout << endl;
+			pp = GetPosCur();
 		}
 	} while (ret == nullptr);
 
@@ -1382,47 +1338,490 @@ void Init(Shop &shop) {
 	if (shop.traders.traders.size() == 0) { // Якщо програма запущена перший раз
 		typesOfTraders.TOFT.push_back(new TypeOfTrader("root", 1)); // Добавляємо новий тип працiвника
 		for (int i = 0; i < typesOfTraders.TOFT[0]->GetCountOfPermissions(); i++)  SetAll(&(typesOfTraders.TOFT[0]->permissions[i]));
-		POINT pos;
-		string pass;
+		POINT pos, pp;
+		string pass, Npass;
 		string email;
-
-		cout << ":: First log to base. Register ::" << endl;
-
+		
+		printHeader("Перший запуск бази данних");
+		pp = GetPosCur();
 		{
 			Trader rr;
-			cout << "Input your email\t: ";
-			pos = GetPosCur();
+			pos = BoxGet("Введiть новий емейл ");
 			do
 			{
-				clearToPos(pos);
-				getline(cin, email);
+				email = GetLine(pos, email, consoleSize.x - GetPosCur().x - 1);
 			} while (!rr.IsOkEmail(email));
 		}
-
-		cout << "Input your password\t: ";
-		pos = GetPosCur();
+		gotoxy(pp.x, pp.y);
+		pos = BoxGet("Введiть новий пароль");
 		do
 		{
-			clearToPos(pos);
-			getline(cin, pass);
+			pass = GetLine(pos, pass, consoleSize.x - GetPosCur().x - 1, true);
 		} while (pass.size() < 1);
 		
+		gotoxy(pp.x, pp.y);
+		pos = BoxGet("Повторiть новий пароль");
+		do
+		{
+			Npass = GetLine(pos, Npass, consoleSize.x - GetPosCur().x - 1, true);
+		} while (Npass != pass);
 		shop.traders.AddTrader("root", "root", "root", pass, email, 1, 1, 1900, 0);
 	}
 }
 
+void PrintMessage(string &msg) {
+	if (msg.size() > 0) {
+		UINT mm = GetConsoleCP();
+		cout << char(186);
+		SetConsoleCP(1251);
+		SetConsoleOutputCP(1251);
+		printLine(msg, consoleSize.x - 3, 2);
+		SetConsoleCP(mm);
+		SetConsoleOutputCP(mm);
+		gotoxy(consoleSize.x - 2, GetPosCur().y);
+		cout << char(186) << endl << char(204);
+		for (int i = 0; i < consoleSize.x - 3; i++) cout << char(205);
+		cout << char(185);
+		cout << endl;
+		msg = "";
+	}
+}
+
+
+
+bool * SelectItems(vector<string *> *str, POINT pos = GetPosCur()) {
+	pos.x = 0; // О
+	int ch = 0, start = 0, finish = (consoleSize.y - pos.y)/2, item = 0, cout_item = 0; // нажата кнопка, iндекс з якого виводимо , iндекс на якому закiнчуємо виводити, позицыя курсора вибору
+	bool reload = true, exit = false; // Флажок перерисовки, флажок виходу
+	bool *masstoseind = new bool[str->size()]; // Массив вибраних 
+	for (int i = 0; i < str->size(); i++) masstoseind[i] = false; // РОбимо усi флажки false
+	UINT mm = GetConsoleCP();
+	string Options = "Кнопка B = Вийти, S = Вибрати все, U = НЕ вибрати все, O = Готово"; // Зберiгаєм начальну locale
+	gotoxy(pos.x, pos.y); // Перемiщуємося в початкову точку
+	for (int i = 0; i < str->size() && i < finish; i++) // Виводимо сiтку(Заготовку де будуть розмiщуватися самi ыекштп ektvtynb)
+	{
+		cout << char(186);
+		gotoxy(consoleSize.x - 1, GetPosCur().y);
+		cout << char(186);
+		cout << endl;
+		cout << char(199);
+		for (int i = 0; i < consoleSize.x - 2; i++) cout << char(196);
+		cout << char(182);
+		cout << endl;
+	}
+	cout << char(186);
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	cout << Options;
+	SetConsoleCP(mm);
+	SetConsoleOutputCP(mm);
+	gotoxy(consoleSize.x - 1, GetPosCur().y);
+	cout << char(186);
+	cout << endl;
+	cout << char(200);
+	for (int i = 0; i < consoleSize.x - 2; i++) cout << char(205);
+	cout << char(188);
+	gotoxy(pos.x, pos.y);
+	
+	while (!exit)
+	{
+		if (reload) {
+
+			SetConsoleCP(1251);
+			SetConsoleOutputCP(1251);
+
+			for (int i = start; i < str->size() && i < finish; i++)
+			{
+				gotoxy(1, pos.y + ((i - start) * 2));
+				if ((*str)[i]->size() > consoleSize.x - 5) {
+					(*str)[i]->erase(consoleSize.x - 5);
+					*(*str)[i] += "...";
+				}
+				if (masstoseind[i] == true) {
+					SetColorConsole(0, 10);
+				}
+				cout << *(*str)[i];
+				for (int s = 0; s < consoleSize.x - 2 - (*str)[i]->size(); s++) cout << " ";
+				SetColorConsole(7, 0);
+			}
+
+			SetConsoleCP(mm);
+			SetConsoleOutputCP(mm);
+
+		}
+		
+		if (item != cout_item || reload == true) {
+			if (cout_item >= start && cout_item <= finish) {
+				gotoxy(1, pos.y + ((cout_item - start) * 2));
+				if (masstoseind[cout_item] == true) {
+					SetColorConsole(0, 10);
+				}
+				SetConsoleCP(1251);
+				SetConsoleOutputCP(1251);
+
+				cout << *(*str)[cout_item];
+				SetConsoleCP(mm);
+				SetConsoleOutputCP(mm);
+				for (int s = 0; s < consoleSize.x - 2 - (*str)[cout_item]->size(); s++) cout << " ";
+				SetColorConsole(7, 0);
+			}
+			gotoxy(1, pos.y + ((item - start) * 2));
+			SetColorConsole(0, 14);
+			SetConsoleCP(1251);
+			SetConsoleOutputCP(1251);
+			cout << *(*str)[item];
+			SetConsoleCP(mm);
+			SetConsoleOutputCP(mm);
+			for (int s = 0; s < consoleSize.x - 2 - (*str)[item]->size(); s++) cout << " ";
+			SetColorConsole(7, 0);
+			cout_item = item;
+		}
+		reload = false;
+			ch = _getch();
+			switch (ch)
+			{
+			case 80:
+				if (item < str->size() - 1) item++;
+				else ch = 0;
+				if (item + 1 > finish && finish < str->size() && ch != 0) {
+					finish++;
+					start++;
+					reload = true;
+				}
+				break;
+			case 72:
+				if (item > 0) item--;
+				else ch = 0;
+				if (item < start && start > 0 && ch != 0) {
+					finish--;
+					start--;
+					reload = true;
+				}
+				break;
+			case 98:
+			case 168:
+			{
+				if (str->size() >= finish)
+					gotoxy(1, pos.y + (finish - start) * 2);
+				else gotoxy(1, pos.y + (str->size() - start) * 2);
+				SetConsoleCP(1251);
+				SetConsoleOutputCP(1251);
+				cout << "Точно ви хочете вийти з цього меню (yes ? no): ";
+				clearLine(1);
+				SetConsoleCP(mm);
+				SetConsoleOutputCP(mm);
+				POINT opos = GetPosCur();
+				string YN;
+				do
+				{
+					YN = GetLine(opos, YN, consoleSize.x - GetPosCur().x - 1);
+				} while (YN != "Yes" && YN != "No" && YN != "Y" && YN != "N" && YN != "y" && YN != "n" && YN != "yes" && YN != "no");
+				if (YN == "Yes" || YN == "Y" || YN == "y" || YN == "yes") return nullptr;
+				else {
+					if (str->size() >= finish)
+					gotoxy(1, pos.y + (finish - start) * 2);
+					else gotoxy(1, pos.y + (str->size() - start) * 2);
+					SetConsoleCP(1251);
+					SetConsoleOutputCP(1251);
+					cout << Options;
+					clearLine(1);
+					cout << endl;
+					SetConsoleCP(mm);
+					SetConsoleOutputCP(mm);
+				}
+					
+			}
+				
+				break;
+			case 233:
+			case 111:
+			{
+				if (str->size() >= finish)
+					gotoxy(1, pos.y + (finish - start) * 2);
+				else gotoxy(1, pos.y + (str->size() - start) * 2);
+				SetConsoleCP(1251);
+				SetConsoleOutputCP(1251);
+				cout << "Точно готово (yes ? no): ";
+				clearLine(1);
+				SetConsoleCP(mm);
+				SetConsoleOutputCP(mm);
+				POINT opos = GetPosCur();
+				string YN;
+				do
+				{
+					YN = GetLine(opos, YN, consoleSize.x - GetPosCur().x - 1);
+				} while (YN != "Yes" && YN != "No" && YN != "Y" && YN != "N" && YN != "y" && YN != "n" && YN != "yes" && YN != "no");
+				if (YN == "Yes" || YN == "Y" || YN == "y" || YN == "yes") exit = true;
+				else {
+					if (str->size() >= finish)
+						gotoxy(1, pos.y + (finish - start) * 2);
+					else gotoxy(1, pos.y + (str->size() - start) * 2);
+					SetConsoleCP(1251);
+					SetConsoleOutputCP(1251);
+					cout << Options;
+					clearLine(1);
+					cout << endl;
+					SetConsoleCP(mm);
+					SetConsoleOutputCP(mm);
+				}
+
+			}
+
+				break;
+			case 13:
+				if (!masstoseind[item]) {
+					masstoseind[item] = true;
+				}
+				else masstoseind[item] = false;
+				break;
+			case 63:
+			case 115:
+			case 235:
+				for (int i = 0; i < str->size(); i++)
+				{
+					if (!masstoseind[i]) masstoseind[i] = 1;
+				}
+				reload = true;
+				break;
+			case 117:
+			case 163:
+				for (int i = 0; i < str->size(); i++)
+				{
+					if (masstoseind[i]) masstoseind[i] = 0;
+				}
+				reload = true;
+				break;
+		}
+	}
+	return masstoseind;
+}
+
+
+
+string AddNewCategory(Shop &shop) {
+	cl();
+	printHeader("Додавання нової категорiї продуктiв");
+	POINT pos;
+	string name;
+	int in;
+	vector<string> menu = {
+		{ "Назад"},
+		{ "Готово" },
+		{ "Вихiд" }
+	};
+	pos = BoxGet("Введiть iм'я нової категорiї продуктiв ");
+	
+	do
+	{
+		back :
+		name = GetLine(pos, name, consoleSize.x - GetPosCur().x - 1);
+
+	} while (name.size() < 1);
+	gotoxy(0, GetPosCur().y + 1);
+	cout << char(204);
+	gotoxy(consoleSize.x-1, GetPosCur().y);
+	cout << char(185);
+	gotoxy(0, GetPosCur().y + 1);
+	
+	in = CoutMenu(&menu);
+	if (in == 0) goto back;
+	else if (in == 2) {
+		menu.clear();
+		return "Жодної категорiї не додано";
+	}
+	ACtg.ctg.push_back(new Category(name));
+	menu.clear();
+	return "Додана нова категорiя продуктiв " + name;
+}
+
+int SelectOneCategory() {
+	cl();
+	vector<string> menu;
+	menu.push_back("Вийти з цього меню");
+	for (int i = 0; i < ACtg.ctg.size(); i++) menu.push_back(ACtg.ctg[i]->GetName());
+	printHeader("Вибiр категорiї");
+	return CoutMenu(&menu);
+}
+
+int SelectOnePidCategory(Category *ctg) {
+	cl();
+	vector<string> menu;
+	menu.push_back("Вийти з цього меню");
+	for (int i = 0; i < ctg->GetCountOfPidCategories(); i++) menu.push_back(ctg->GetNamePidCategory(i));
+	printHeader("Вибiр під категорiї");
+	return CoutMenu(&menu);
+}
+
+string RenameCategoryOfProducts(Shop &shop) {
+	if (ACtg.ctg.size() > 0) {
+		int Imenu;
+		POINT pos;
+		string name;
+		int in;
+		vector<string> menuu = {
+			{ "Назад" },
+		{ "Назад до вибору категорiї"},
+		{ "Готово"},
+		{ "Вихiд"}
+		};
+
+		selectCategory:
+		Imenu = SelectOneCategory();
+		if (Imenu > 0) {
+			Imenu--;
+			cl();
+			printHeader("Перейменування категорiї продуктiв");
+			
+			pos = BoxGet("Введiть нове iм'я категорiї продуктiв " + ACtg.ctg[Imenu]->GetName() + " ");
+
+			do
+			{
+			back:
+				name = GetLine(pos, name, consoleSize.x - GetPosCur().x - 1);
+
+			} while (name.size() < 1);
+			gotoxy(0, GetPosCur().y + 1);
+			cout << char(204);
+			gotoxy(consoleSize.x - 1, GetPosCur().y);
+			cout << char(185);
+			gotoxy(0, GetPosCur().y + 1);
+
+			in = CoutMenu(&menuu);
+			if (in == 0) goto back;
+			else if (in == 1) goto selectCategory;
+			else if (in == 3) {
+				menuu.clear();
+				return "Жодної категорiї не перейменовано";
+			}
+			ACtg.ctg[Imenu]->SetName(name);
+			menuu.clear();
+			return "Перейменована категорiя продуктiв на " + name;
+		}
+		else return "Жодної категорiї не перейменовано";
+	}else return "Не має категорiй продуктiв";
+}
+
+string DeleteCategory(Shop &shop) {
+	if (ACtg.ctg.size() > 0) {
+		cl();
+		vector<string *> menu;
+		for (int i = 0; i < ACtg.ctg.size(); i++) menu.push_back(new string(ACtg.ctg[i]->GetName()));
+		printHeader("Видалення категорій");
+		bool * get = SelectItems(&menu);
+		if (get != nullptr) {
+			int i = 0, r = 0;
+			for (; i < ACtg.ctg.size();)
+			{
+				if (get[r] == true) {
+					delete ACtg.ctg[i];
+					ACtg.ctg.erase(ACtg.ctg.begin() + i);
+				}
+				else i++;
+				r++;	
+			}
+			if (i < r) return "Категорiї видалено";
+			else return "Категорiї не видалено";
+		} 
+		else return "Категорiї не видалено";
+	}
+	else return "Не має категорiй продуктiв";
+}
+
+string AddPidCadegory(Shop &shop) {
+	
+	if (ACtg.ctg.size() > 0) {
+		cl();
+		int ICTG, IPIDCTG, in;
+		POINT pos;
+		string name;
+		vector<string> menuu = {
+			{ "Назад" },
+			{ "Назад до вибору категорiї" },
+			{ "Готово" },
+			{ "Вихiд" }
+		};
+	SelectCategory:
+		ICTG = SelectOneCategory();
+		if (ICTG > 0) {
+			cl();
+			printHeader("Додавання нової під категорiї продуктiв");
+			pos = BoxGet("Введiть iм'я нової під категорiї продуктiв ");
+			do
+			{
+			SelectName:
+				name = GetLine(pos, name, consoleSize.x - GetPosCur().x - 1);
+
+			} while (name.size() < 1);
+			gotoxy(0, GetPosCur().y + 1);
+			cout << char(204);
+			gotoxy(consoleSize.x - 1, GetPosCur().y);
+			cout << char(185);
+			gotoxy(0, GetPosCur().y + 1);
+
+			in = CoutMenu(&menuu);
+			if (in == 0) goto SelectName;
+			else if (in == 1) goto SelectCategory;
+			else if (in == 3) {
+				menuu.clear();
+				return "Жодної під категорiї не додано";
+			}
+			ACtg.ctg[ICTG]->AddPidCategory(name);
+			menuu.clear();
+			return "Додано нову під категорію " + name;
+		}
+		else return "Під категорії не додано";
+	}
+	else return "Не має категорій";
+}
 int main() {
 
-	//for (int i = 0; i < 255; i++) cout << i << " " << char(i) << endl; system("pause");return 0;
+	//SelectItems(new vector<string *>{ 
+	//	{ new string("1") },
+	//	{ new string("2") },
+	//	{ new string("3") },
+	//	{ new string("4") },
+	//	{ new string("5") },
+	//	{ new string("6") },
+	//	{ new string("7") },
+	//	{ new string("8") },
+	//	{ new string("9") },
+	//	{ new string("10") },
+	//	{ new string("11") },
+	//	{ new string("12") },
+	//	{ new string("13") },
+	//	{ new string("14") },
+	//	{ new string("15") },
+	//	{ new string("16") },
+	//	{ new string("17") },
+	//	{ new string("18") },
+	//	{ new string("19") },
+	//	{ new string("20") },
+	//	{ new string("21") },
+	//	{ new string("22") },
+	//	{ new string("23") },
+	//	{ new string("24") },
+	//	{ new string("25") },
+	//	{ new string("26") },
+	//	{ new string("27") },
+	//	{ new string("28") },
+	//	{ new string("29fdsfsddddddddddddddddddddddddddddddddddddfjudfjusifsjddddddddddddddddddddsodifsdoifsdufsiodfisodfiosdiofsdiofio") }
+	//	});
+
+	//return 0;
+
+	
 	SetVisibleCursor(false);
 	Shop shop;
 	InitLLC(shop);
+	// Init(shop);
 	cl();
+	//Trader * user = LogIn(shop);
 	Trader * user = shop.LogIn("1@1.1", "1111");
 	bool exit = false;
 	int Imenu;
-	vector<string *> menu;
-	vector<int *> Inmenu;
+	vector<string> menu;
+	vector<int> Inmenu;
+	string message;
 	Permission *perm = new Permission;
 	perm->permissions = typesOfTraders.TOFT[user->GetType()]->permissions;
 	perm->SetCountPidPermissions(typesOfTraders.TOFT[user->GetType()]->GetCountOfPermissions());
@@ -1435,63 +1834,60 @@ int main() {
 		if (menu.size() == 0) {
 			int maxSize = 0; // Максимальний довжина меню
 
-			menu.push_back(new string("Вийти з бази")); 
-			Inmenu.push_back(new int(-1));
+			menu.push_back("Вийти з бази"); 
+			Inmenu.push_back(-1);
 			
 
 			if (perm->nadPermission != nullptr) {                                                    
-				menu.push_back(new string("<< Назад в прошлое"));
-				Inmenu.push_back(new int(-2));
+				menu.push_back("<< Назад в прошлое");
+				Inmenu.push_back(-2);
 			}
 		
 				
 			
 			for (int i = 0; i < perm->GetCountOfPidPermissions(); i++)
 				if (perm->permissions[i].GetPermission()) {
-					menu.push_back(new string(perm->permissions[i].GetInMenu()));
-					Inmenu.push_back(new int(i));
-					//for (int r = 0; r < maxSize - perm->permissions[i].GetInMenu().length(); r++) *menu[menu.size() - 1] += " ";
-					//if (perm->permissions[i].permissions != nullptr) *menu[menu.size() - 1] += " +";
-					//else *menu[menu.size() - 1] += "  ";
+					menu.push_back(perm->permissions[i].GetInMenu());
+					Inmenu.push_back(i);
 				}
 			
 			for (int i = 0; i < menu.size(); i++) {
-				if (maxSize < menu[i]->length()) maxSize = menu[i]->length();
+				if (maxSize < menu[i].length()) maxSize = menu[i].length();
 			}
 
 			printHeader(perm->GetNameMenu()); // Виводимо header
 
 			for (int i = 0; i < menu.size(); i++)
 			{
-				int m = maxSize - menu[i]->length();
+				int m = maxSize - menu[i].length();
 				for (int r = 0; r < m; r++) {
-					*menu[i] += " ";
+					menu[i] += " ";
 				}
-				if (*Inmenu[i] > -1) {
-					if (perm->permissions[*Inmenu[i]].permissions != nullptr) *menu[i] += " + ";
-					else *menu[i] += "   ";
+				if (Inmenu[i] > -1) {
+					if (perm->permissions[Inmenu[i]].permissions != nullptr) menu[i] += " + ";
+					else menu[i] += "   ";
 				}
-				else *menu[i] += "   ";
+				else menu[i] += "   ";
 			}
 
 		}
+		PrintMessage(message);
 		Imenu = CoutMenu(&menu);
-		if (*Inmenu[Imenu] > -1) {
-			if (perm->permissions[*Inmenu[Imenu]].permissions != nullptr) perm = &perm->permissions[*Inmenu[Imenu]];
-			for (int i = 0; i < menu.size(); i++) delete menu[i];
-			menu.resize(0);
-			for (int i = 0; i < Inmenu.size(); i++) delete Inmenu[i];
-			Inmenu.resize(0);
+		if (Inmenu[Imenu] > -1) {
+			if (perm->permissions[Inmenu[Imenu]].permissions != nullptr) perm = &perm->permissions[Inmenu[Imenu]];
+			else if (perm->permissions[Inmenu[Imenu]].func != NULL) {
+				message = perm->permissions[Inmenu[Imenu]].func(shop);
+			}
+			menu.clear();
+			Inmenu.clear();
 		}
 		else {
-			switch (*Inmenu[Imenu])
+			switch (Inmenu[Imenu])
 			{
 				case -2: 
 					perm = perm->nadPermission;
-					for (int i = 0; i < menu.size(); i++) delete menu[i];
-					menu.resize(0);
-					for (int i = 0; i < Inmenu.size(); i++) delete Inmenu[i];
-					Inmenu.resize(0);
+					menu.clear();
+					Inmenu.clear();
 				break;
 				case -1:
 					exit = true;
