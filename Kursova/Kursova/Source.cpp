@@ -66,14 +66,14 @@ void clearToPos(int x, int y) {
 	{
 		if (current_pos.y > y) {
 			gotoxy(0, current_pos.y);
-			for (int i = 0; i < GetBufferChars(); i++)
+			for (int i = 0; i < consoleSize.x; i++)
 			{
 				cout << '\0';
 			}
 		}
 		else if (current_pos.y == y) {
 			gotoxy(x, current_pos.y);
-			if (current_pos.x != x) for (int i = 0; i <= GetBufferChars() - x; i++)
+			if (current_pos.x != x) for (int i = 0; i <= consoleSize.x - x; i++)
 			{
 				cout << '\0';
 			}
@@ -86,7 +86,7 @@ void clearToPos(int x, int y) {
 
 void clearLine(const int &s = 0) {
 	POINT pos = GetPosCur();
-	for (int i = 0; i < GetBufferChars() - pos.x - s; i++)
+	for (int i = 0; i < consoleSize.x - pos.x - s; i++)
 	{
 		cout << '\0';
 	}
@@ -107,7 +107,7 @@ bool SetColorConsole(const int textColor = 7, const int background = 0) {
 
 void FullLine(char a, int font = 7, int back = 0) {
 	SetConsoleTextAttribute(hCon, (WORD)((back << 4) | font));
-	int _chars = GetBufferChars();
+	int _chars = consoleSize.x;
 	for (int i = 0; i < _chars; i++)
 	{
 		cout << a;
@@ -1130,14 +1130,14 @@ public:
 };
 
 void printHeader(const string& str) {
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 1; i++) cout << '\0';
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 1; i++) cout << '\0';
 	cout << char(201);
 	for (int i = 0; i < str.size(); i++) cout << char(205);
 	cout << char(187);
 	cout << endl;
 	
 	cout << char(201);
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 2; i++) cout << char(205);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
 	UINT rr = GetConsoleCP();
 	
 	cout << char(185);
@@ -1148,20 +1148,20 @@ void printHeader(const string& str) {
 	SetConsoleOutputCP(rr);
 	cout << char(204);
 
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 2; i++) cout << char(205);
-	gotoxy(GetBufferChars() - 3, GetPosCur().y);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
+	gotoxy(consoleSize.x - 3, GetPosCur().y);
 	cout << char(205) << char(187) << endl;
 	cout << char(204);
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 2; i++) cout << char(205);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
 	cout << char(202);
 	for (int i = 0; i < str.size(); i++) cout << char(205);
 	cout << char(202);
-	for (int i = 0; i < (GetBufferChars() - str.size()) / 2 - 2; i++) cout << char(205);
-	gotoxy(GetBufferChars() - 3, GetPosCur().y);
+	for (int i = 0; i < (consoleSize.x - str.size()) / 2 - 2; i++) cout << char(205);
+	gotoxy(consoleSize.x - 3, GetPosCur().y);
 	cout << char(205) << char(185) << endl;
 }
 
-void printLine(const string & str, int size = GetBufferChars(),const int textColor = 7, const int background = 0) {
+void printLine(const string & str, int size = consoleSize.x,const int textColor = 7, const int background = 0) {
 	SetColorConsole(textColor, background); // Змiна кольору консолi 15 колiр тла, 0 колiр тексту
 	for (int i = 0; i < (size - str.size()) / 2; i++) cout << " "; // Виведення вiдступу
 	UINT rr = GetConsoleCP();
@@ -1175,24 +1175,24 @@ void printLine(const string & str, int size = GetBufferChars(),const int textCol
 }
 
 int CoutMenu(vector<string> *str, POINT pos = GetPosCur()) {
-	int ch = 0, start = 0, finish = (GetBufferCharsbot() - pos.y) / 2, item = 0, cout_item = 0; // нажата кнопка, iндекс з якого виводимо , iндекс на якому закiнчуємо виводити, позицыя курсора вибору
+	int ch = 0, start = 0, finish = (consoleSize.y - pos.y) / 2, item = 0, cout_item = 0; // нажата кнопка, iндекс з якого виводимо , iндекс на якому закiнчуємо виводити, позицыя курсора вибору
 	bool reload = true, exit = false; // Флажок перерисовки, флажок виходу
 	UINT mm = GetConsoleCP();
 	gotoxy(pos.x, pos.y); // Перемiщуємося в початкову точку
 	for (int i = 0; i < str->size() && i < finish; i++) // Виводимо сiтку(Заготовку де будуть розмiщуватися самi ыекштп ektvtynb)
 	{
 		cout << char(186);
-		gotoxy(GetBufferChars() - 2, GetPosCur().y);
+		gotoxy(consoleSize.x - 2, GetPosCur().y);
 		cout << char(186);
 		cout << endl;
 		if (str->size() - 1 != i) {
 			cout << char(199);
-			for (int i = 0; i < GetBufferChars() - 3; i++) cout << char(196);
+			for (int i = 0; i < consoleSize.x - 3; i++) cout << char(196);
 			cout << char(182);
 		}
 		else {
 			cout << char(200);
-			for (int i = 0; i < GetBufferChars() - 3; i++) cout << char(205);
+			for (int i = 0; i < consoleSize.x - 3; i++) cout << char(205);
 			cout << char(188);
 		}
 		cout << endl;
@@ -1206,21 +1206,21 @@ int CoutMenu(vector<string> *str, POINT pos = GetPosCur()) {
 			for (int i = start; i < str->size() && i < finish; i++)
 			{
 				gotoxy(1, pos.y + ((i - start) * 2));
-				if ((*str)[i].size() > GetBufferChars() - 5) {
-					(*str)[i].erase(GetBufferChars() - 5);
+				if ((*str)[i].size() > consoleSize.x - 5) {
+					(*str)[i].erase(consoleSize.x - 5);
 					(*str)[i] += "...";
 				}
-				printLine((*str)[i], GetBufferChars() - 4);
+				printLine((*str)[i], consoleSize.x - 4);
 			}
 		}
 
 		if (item != cout_item || reload == true) {
 			if (cout_item >= start && cout_item <= finish) {
 				gotoxy(1, pos.y + ((cout_item - start) * 2));
-				printLine((*str)[cout_item], GetBufferChars() - 4);
+				printLine((*str)[cout_item], consoleSize.x - 4);
 			}
 			gotoxy(1, pos.y + ((item - start) * 2));
-			printLine((*str)[item], GetBufferChars() - 4, 0, 15);
+			printLine((*str)[item], consoleSize.x - 4, 0, 15);
 			cout_item = item;
 		}
 		reload = false;
@@ -1260,18 +1260,18 @@ int CoutMenu(vector<string> *str, POINT pos = GetPosCur()) {
 //	
 //	for (int i = 0; i < menus->size(); i++) {
 //		cout << char(186);
-//		printLine((*menus)[i], GetBufferChars() - 3);
-//		gotoxy(GetBufferChars() - 2, startCout.y + (i * 2));
+//		printLine((*menus)[i], consoleSize.x - 3);
+//		gotoxy(consoleSize.x - 2, startCout.y + (i * 2));
 //		cout << char(186);
 //		cout << endl;
 //		if (menus->size() - 1 != i) {
 //			cout << char(199);
-//			for (int i = 0; i < GetBufferChars() - 3; i++) cout << char(196);
+//			for (int i = 0; i < consoleSize.x - 3; i++) cout << char(196);
 //			cout << char(182);
 //		}
 //		else {
 //			cout << char(200);
-//			for (int i = 0; i < GetBufferChars() - 3; i++) cout << char(205);
+//			for (int i = 0; i < consoleSize.x - 3; i++) cout << char(205);
 //			cout << char(188);
 //		}
 //		cout << endl;
@@ -1280,13 +1280,13 @@ int CoutMenu(vector<string> *str, POINT pos = GetPosCur()) {
 //	{
 //		if (selected != cout_selected) {
 //			gotoxy(1, startCout.y + (cout_selected*2));
-//			printLine((*menus)[cout_selected], GetBufferChars() - 3);
+//			printLine((*menus)[cout_selected], consoleSize.x - 3);
 //			gotoxy(1, startCout.y + (selected*2));
-//			printLine((*menus)[selected], GetBufferChars() - 3, 0, 15);
+//			printLine((*menus)[selected], consoleSize.x - 3, 0, 15);
 //			cout_selected = selected;
 //			for (int i = 0; i < menus->size(); i++)
 //			{
-//				gotoxy(GetBufferChars() - 2, startCout.y + (i * 2));
+//				gotoxy(consoleSize.x - 2, startCout.y + (i * 2));
 //				cout << char(186);
 //			}
 //		}
@@ -1314,7 +1314,7 @@ void SetAll(Permission *pr) {
 string GetLine(POINT pos = GetPosCur(), string in = "",const int &count = 0, const bool &pass = false) {
 	gotoxy(pos.x, pos.y);
 	SetVisibleCursor(true);
-	int symGet;
+	int symGet, ii = in.size();
 	UINT rr = GetConsoleCP();
 	SetConsoleCP(1251);
 	SetConsoleOutputCP(1251);
@@ -1323,15 +1323,47 @@ string GetLine(POINT pos = GetPosCur(), string in = "",const int &count = 0, con
 	while (true) {
 		//scanf_s("%c", &symGet);
 		symGet = _getch();
+		if (symGet == 224)
+		{
+			switch (_getch())
+			{
+			case 77:
+				if (ii < in.size()) {
+					ii++;
+					gotoxy(pos.x + ii, pos.y);
+				}
+				symGet = 0;
+				break;
+
+			case 75:
+				if (ii > 0) {
+					ii--;
+					gotoxy(pos.x + ii, pos.y);
+				}
+				symGet = 0;
+				break;
+			default:
+				symGet = 224;
+			}
+		}
 		if (symGet > 0) {
 			if (symGet != 8 && symGet != 13 && (in.size() < count || count == 0)) {
-				in += char(symGet);
-				if (!pass) cout << char(symGet);
-				else cout << "*";
+				
+				in.insert(in.begin() + ii, char(symGet));
+				ii++;
+				gotoxy(pos.x, pos.y);
+				if (!pass) cout << in;
+				else for (int i = 0; i < in.size(); i++) cout << '*';
+				gotoxy(pos.x + ii, pos.y);
 			}
-			else if (symGet == 8 && in.size() > 0) {
-				cout << char(symGet) << '\0' << char(symGet);
-				in.pop_back();
+			else if (symGet == 8 && ii > 0) {
+				
+				in.erase(in.begin() + --ii);
+				gotoxy(pos.x, pos.y);
+				if (!pass) cout << in;
+				else for (int i = 0; i < in.size(); i++) cout << '*'; 
+				cout << '\0';
+				gotoxy(pos.x + ii, pos.y);
 			}
 			else if (symGet == 13) break;
 			
@@ -1356,15 +1388,15 @@ POINT BoxGet(const string &str) {
 	pos = GetPosCur();
 	cout << endl;
 	cout << char(200);
-	for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(205);
-	gotoxy(GetBufferChars() - 3, GetPosCur().y);
+	for (int i = 0; i < consoleSize.x - 2; i++) cout << char(205);
+	gotoxy(consoleSize.x - 3, GetPosCur().y);
 	cout << char(205) << char(188) << endl;
 	gotoxy(pos.x - 2, pos.y - 1);
 	cout << char(203);
 	gotoxy(pos.x - 2, pos.y + 1);
 	cout << char(202);
 	
-	gotoxy(GetBufferChars() - 2, pos.y);
+	gotoxy(consoleSize.x - 2, pos.y);
 	cout << char(186);
 	gotoxy(pos.x, pos.y);
 	return pos;
@@ -1390,7 +1422,7 @@ Trader * LogIn(Shop &shop) {
 			pos = BoxGet("Введiть емейл ");
 			do
 			{
-				email = GetLine(pos, email, GetBufferChars() - GetPosCur().x - 1);
+				email = GetLine(pos, email, consoleSize.x - GetPosCur().x - 2);
 			} while (!rr.IsOkEmail(email));
 		}
 
@@ -1398,7 +1430,7 @@ Trader * LogIn(Shop &shop) {
 		pos = BoxGet("Введiть пароль");
 		do
 		{
-			pass = GetLine(pos, pass, GetBufferChars() - GetPosCur().x - 1, true);
+			pass = GetLine(pos, pass, consoleSize.x - GetPosCur().x - 2, true);
 		} while (pass.size() < 1);
 		ret = shop.LogIn(email, pass);
 		if (ret == nullptr) {
@@ -1406,12 +1438,12 @@ Trader * LogIn(Shop &shop) {
 			cout << char(186);
 			SetConsoleCP(1251);
 			SetConsoleOutputCP(1251);
-			printLine("Неправильний емейл або пароль!", GetBufferChars() - 3, 12);
+			printLine("Неправильний емейл або пароль!", consoleSize.x - 3, 12);
 			SetConsoleCP(rr);
 			SetConsoleOutputCP(rr);
-			gotoxy(GetBufferChars()-1, GetPosCur().y);
+			gotoxy(consoleSize.x-1, GetPosCur().y);
 			cout << char(186) << endl << char(204);
-			for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(205);
+			for (int i = 0; i < consoleSize.x - 2; i++) cout << char(205);
 			cout << char(185);
 			cout << endl;
 			pp = GetPosCur();
@@ -1444,21 +1476,21 @@ void Init(Shop &shop) {
 			pos = BoxGet("Введiть новий емейл ");
 			do
 			{
-				email = GetLine(pos, email, GetBufferChars() - GetPosCur().x - 1);
+				email = GetLine(pos, email, consoleSize.x - GetPosCur().x - 2);
 			} while (!rr.IsOkEmail(email));
 		}
 		gotoxy(pp.x, pp.y);
 		pos = BoxGet("Введiть новий пароль");
 		do
 		{
-			pass = GetLine(pos, pass, GetBufferChars() - GetPosCur().x - 1, true);
+			pass = GetLine(pos, pass, consoleSize.x - GetPosCur().x - 2, true);
 		} while (pass.size() < 1);
 		
 		gotoxy(pp.x, pp.y);
 		pos = BoxGet("Повторiть новий пароль");
 		do
 		{
-			Npass = GetLine(pos, Npass, GetBufferChars() - GetPosCur().x - 1, true);
+			Npass = GetLine(pos, Npass, consoleSize.x - GetPosCur().x - 2, true);
 		} while (Npass != pass);
 		shop.traders.AddTrader("root", "root", "root", pass, email, 1, 1, 1900, 0);
 	}
@@ -1470,12 +1502,12 @@ void PrintMessage(string &msg) {
 		cout << char(186);
 		SetConsoleCP(1251);
 		SetConsoleOutputCP(1251);
-		printLine(msg, GetBufferChars() - 3, 2);
+		printLine(msg, consoleSize.x - 3, 2);
 		SetConsoleCP(mm);
 		SetConsoleOutputCP(mm);
-		gotoxy(GetBufferChars() - 2, GetPosCur().y);
+		gotoxy(consoleSize.x - 2, GetPosCur().y);
 		cout << char(186) << endl << char(204);
-		for (int i = 0; i < GetBufferChars() - 3; i++) cout << char(205);
+		for (int i = 0; i < consoleSize.x - 3; i++) cout << char(205);
 		cout << char(185);
 		cout << endl;
 		msg = "";
@@ -1485,7 +1517,7 @@ void PrintMessage(string &msg) {
 
 void ShowItems(vector<string> *str, POINT pos = GetPosCur()) {
 	pos.x = 0; // О
-	int ch = 0, start = 0, finish = (GetBufferCharsbot() - pos.y) / 2; // нажата кнопка, iндекс з якого виводимо , iндекс на якому закiнчуємо виводити, позицыя курсора вибору
+	int ch = 0, start = 0, finish = (consoleSize.y - pos.y) / 2; // нажата кнопка, iндекс з якого виводимо , iндекс на якому закiнчуємо виводити, позицыя курсора вибору
 	bool reload = true, exit = false; // Флажок перерисовки, флажок виходу
 	UINT mm = GetConsoleCP();
 	string Options = "Кнопка B = Вийти"; // Зберiгаєм начальну locale
@@ -1493,12 +1525,12 @@ void ShowItems(vector<string> *str, POINT pos = GetPosCur()) {
 	for (int i = 0; i < str->size() && i < finish; i++) // Виводимо сiтку(Заготовку де будуть розмiщуватися самi ыекштп ektvtynb)
 	{
 		cout << char(186);
-		gotoxy(GetBufferChars() - 2, GetPosCur().y);
+		gotoxy(consoleSize.x - 2, GetPosCur().y);
 		cout << char(186);
 		cout << endl;
 		cout << char(199);
-		for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(196);
-		gotoxy(GetBufferChars() - 3, GetPosCur().y);
+		for (int i = 0; i < consoleSize.x - 2; i++) cout << char(196);
+		gotoxy(consoleSize.x - 3, GetPosCur().y);
 		cout << char(196) << char(182) << endl;
 	}
 	cout << char(186);
@@ -1507,12 +1539,12 @@ void ShowItems(vector<string> *str, POINT pos = GetPosCur()) {
 	cout << Options;
 	SetConsoleCP(mm);
 	SetConsoleOutputCP(mm);
-	gotoxy(GetBufferChars() - 2, GetPosCur().y);
+	gotoxy(consoleSize.x - 2, GetPosCur().y);
 	cout << char(186);
 	cout << endl;
 	cout << char(200);
-	for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(205);
-	gotoxy(GetBufferChars() - 3, GetPosCur().y);
+	for (int i = 0; i < consoleSize.x - 2; i++) cout << char(205);
+	gotoxy(consoleSize.x - 3, GetPosCur().y);
 	cout << char(205) << char(188);
 	gotoxy(pos.x, pos.y);
 
@@ -1526,12 +1558,12 @@ void ShowItems(vector<string> *str, POINT pos = GetPosCur()) {
 			for (int i = start; i < str->size() && i < finish; i++)
 			{
 				gotoxy(1, pos.y + ((i - start) * 2));
-				if ((*str)[i].size() > GetBufferChars() - 5) {
-					(*str)[i].erase(GetBufferChars() - 5);
+				if ((*str)[i].size() > consoleSize.x - 5) {
+					(*str)[i].erase(consoleSize.x - 5);
 					(*str)[i] += "...";
 				}
 				cout << (*str)[i];
-				for (int s = 0; s < GetBufferChars() - 3 - (*str)[i].size(); s++) cout << " ";
+				for (int s = 0; s < consoleSize.x - 3 - (*str)[i].size(); s++) cout << " ";
 			}
 
 			SetConsoleCP(mm);
@@ -1572,7 +1604,7 @@ void ShowItems(vector<string> *str, POINT pos = GetPosCur()) {
 			string YN;
 			do
 			{
-				YN = GetLine(opos, YN, GetBufferChars() - GetPosCur().x - 1);
+				YN = GetLine(opos, YN, consoleSize.x - GetPosCur().x - 2);
 			} while (YN != "Yes" && YN != "No" && YN != "Y" && YN != "N" && YN != "y" && YN != "n" && YN != "yes" && YN != "no");
 			if (YN == "Yes" || YN == "Y" || YN == "y" || YN == "yes") exit = true;
 			else {
@@ -1596,7 +1628,7 @@ void ShowItems(vector<string> *str, POINT pos = GetPosCur()) {
 
 bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 	pos.x = 0; // О
-	int ch = 0, start = 0, finish = (GetBufferCharsbot() - pos.y)/2, item = 0, cout_item = 0; // нажата кнопка, iндекс з якого виводимо , iндекс на якому закiнчуємо виводити, позицыя курсора вибору
+	int ch = 0, start = 0, finish = (consoleSize.y - pos.y)/2, item = 0, cout_item = 0; // нажата кнопка, iндекс з якого виводимо , iндекс на якому закiнчуємо виводити, позицыя курсора вибору
 	bool reload = true, exit = false; // Флажок перерисовки, флажок виходу
 	bool *masstoseind = new bool[str->size()]; // Массив вибраних 
 	for (int i = 0; i < str->size(); i++) masstoseind[i] = false; // РОбимо усi флажки false
@@ -1606,12 +1638,12 @@ bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 	for (int i = 0; i < str->size() && i < finish; i++) // Виводимо сiтку(Заготовку де будуть розмiщуватися самi ыекштп ektvtynb)
 	{
 		cout << char(186);
-		gotoxy(GetBufferChars() - 2, GetPosCur().y);
+		gotoxy(consoleSize.x - 2, GetPosCur().y);
 		cout << char(186);
 		cout << endl;
 		cout << char(199);
-		for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(196);
-		gotoxy(GetBufferChars() - 3, GetPosCur().y);
+		for (int i = 0; i < consoleSize.x - 2; i++) cout << char(196);
+		gotoxy(consoleSize.x - 3, GetPosCur().y);
 		cout << char(196) << char(182) << endl;
 	}
 	cout << char(186);
@@ -1620,12 +1652,12 @@ bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 	cout << Options;
 	SetConsoleCP(mm);
 	SetConsoleOutputCP(mm);
-	gotoxy(GetBufferChars() - 2, GetPosCur().y);
+	gotoxy(consoleSize.x - 2, GetPosCur().y);
 	cout << char(186);
 	cout << endl;
 	cout << char(200);
-	for (int i = 0; i < GetBufferChars() - 2; i++) cout << char(205);
-	gotoxy(GetBufferChars() - 3, GetPosCur().y);
+	for (int i = 0; i < consoleSize.x - 2; i++) cout << char(205);
+	gotoxy(consoleSize.x - 3, GetPosCur().y);
 	cout << char(205) << char(188);
 	gotoxy(pos.x, pos.y);
 	
@@ -1639,15 +1671,15 @@ bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 			for (int i = start; i < str->size() && i < finish; i++)
 			{
 				gotoxy(1, pos.y + ((i - start) * 2));
-				if ((*str)[i].size() > GetBufferChars() - 5) {
-					(*str)[i].erase(GetBufferChars() - 5);
+				if ((*str)[i].size() > consoleSize.x - 5) {
+					(*str)[i].erase(consoleSize.x - 5);
 					(*str)[i] += "...";
 				}
 				if (masstoseind[i] == true) {
 					SetColorConsole(0, 10);
 				}
 				cout << (*str)[i];
-				for (int s = 0; s < GetBufferChars() - 3 - (*str)[i].size(); s++) cout << " ";
+				for (int s = 0; s < consoleSize.x - 3 - (*str)[i].size(); s++) cout << " ";
 				SetColorConsole(7, 0);
 			}
 
@@ -1668,7 +1700,7 @@ bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 				cout << (*str)[cout_item];
 				SetConsoleCP(mm);
 				SetConsoleOutputCP(mm);
-				for (int s = 0; s < GetBufferChars() - 3 - (*str)[cout_item].size(); s++) cout << " ";
+				for (int s = 0; s < consoleSize.x - 3 - (*str)[cout_item].size(); s++) cout << " ";
 				SetColorConsole(7, 0);
 			}
 			gotoxy(1, pos.y + ((item - start) * 2));
@@ -1678,7 +1710,7 @@ bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 			cout << (*str)[item];
 			SetConsoleCP(mm);
 			SetConsoleOutputCP(mm);
-			for (int s = 0; s < GetBufferChars() - 3 - (*str)[item].size(); s++) cout << " ";
+			for (int s = 0; s < consoleSize.x - 3 - (*str)[item].size(); s++) cout << " ";
 			SetColorConsole(7, 0);
 			cout_item = item;
 		}
@@ -1720,7 +1752,7 @@ bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 				string YN;
 				do
 				{
-					YN = GetLine(opos, YN, GetBufferChars() - GetPosCur().x - 1);
+					YN = GetLine(opos, YN, consoleSize.x - GetPosCur().x - 2);
 				} while (YN != "Yes" && YN != "No" && YN != "Y" && YN != "N" && YN != "y" && YN != "n" && YN != "yes" && YN != "no");
 				if (YN == "Yes" || YN == "Y" || YN == "y" || YN == "yes") return nullptr;
 				else {
@@ -1755,7 +1787,7 @@ bool * SelectItems(vector<string> *str, POINT pos = GetPosCur()) {
 				string YN;
 				do
 				{
-					YN = GetLine(opos, YN, GetBufferChars() - GetPosCur().x - 1);
+					YN = GetLine(opos, YN, consoleSize.x - GetPosCur().x - 2);
 				} while (YN != "Yes" && YN != "No" && YN != "Y" && YN != "N" && YN != "y" && YN != "n" && YN != "yes" && YN != "no");
 				if (YN == "Yes" || YN == "Y" || YN == "y" || YN == "yes") exit = true;
 				else {
@@ -1818,12 +1850,12 @@ string AddNewCategory(Shop &shop) {
 	do
 	{
 		back :
-		name = GetLine(pos, name, GetBufferChars() - GetPosCur().x - 1);
+		name = GetLine(pos, name, consoleSize.x - GetPosCur().x - 2);
 
 	} while (name.size() < 1);
 	gotoxy(0, GetPosCur().y + 1);
 	cout << char(204);
-	gotoxy(GetBufferChars()-2, GetPosCur().y);
+	gotoxy(consoleSize.x-2, GetPosCur().y);
 	cout << char(185);
 	gotoxy(0, GetPosCur().y + 1);
 	
@@ -1883,12 +1915,12 @@ string RenameCategoryOfProducts(Shop &shop) {
 			do
 			{
 			back:
-				name = GetLine(pos, name, GetBufferChars() - GetPosCur().x - 1);
+				name = GetLine(pos, name, consoleSize.x - GetPosCur().x - 2);
 
 			} while (name.size() < 1);
 			gotoxy(0, GetPosCur().y + 1);
 			cout << char(204);
-			gotoxy(GetBufferChars() - 2, GetPosCur().y);
+			gotoxy(consoleSize.x - 2, GetPosCur().y);
 			cout << char(185);
 			gotoxy(0, GetPosCur().y + 1);
 
@@ -1955,12 +1987,12 @@ string AddPidCadegory(Shop &shop) {
 			do
 			{
 			SelectName:
-				name = GetLine(pos, name, GetBufferChars() - GetPosCur().x - 1);
+				name = GetLine(pos, name, consoleSize.x - GetPosCur().x - 2);
 
 			} while (name.size() < 1);
 			gotoxy(0, GetPosCur().y + 1);
 			cout << char(204);
-			gotoxy(GetBufferChars() - 2, GetPosCur().y);
+			gotoxy(consoleSize.x - 2, GetPosCur().y);
 			cout << char(185);
 			gotoxy(0, GetPosCur().y + 1);
 
@@ -2049,12 +2081,12 @@ string RenamePidCategory(Shop &shop) {
 					do
 					{
 					back:
-						name = GetLine(pos, name, GetBufferChars() - GetPosCur().x - 1);
+						name = GetLine(pos, name, consoleSize.x - GetPosCur().x - 2);
 
 					} while (name.size() < 1);
 					gotoxy(0, GetPosCur().y + 1);
 					cout << char(204);
-					gotoxy(GetBufferChars() - 2, GetPosCur().y);
+					gotoxy(consoleSize.x - 2, GetPosCur().y);
 					cout << char(185);
 					gotoxy(0, GetPosCur().y + 1);
 
@@ -2158,6 +2190,8 @@ int main() {
 	while (!exit)
 	{
 		cl();
+		SetVisibleCursor(false);
+		consoleSize = {GetBufferChars(), GetBufferCharsbot()};
 		gotoxy(0, 0);
 		if (menu.size() == 0) {
 			int maxSize = 0; // Максимальний довжина меню
