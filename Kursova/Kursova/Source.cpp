@@ -9,6 +9,8 @@
 #include <regex>
 using namespace std;
 
+const string FILE_TO_SAVE = "Base_LVL";
+
 
 HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
 CONSOLE_SCREEN_BUFFER_INFO csbInfo;
@@ -338,6 +340,8 @@ class Category /*Категрiї*/ {
 	vector<string> namesCategories; // Назви пiд категорiй
 public:
 
+	Category() = default;
+
 	Category(const string &name) {
 		SetName(name);
 	}
@@ -387,7 +391,47 @@ public:
 		if (IsOkPidCategory(i)) namesCategories.erase(namesCategories.begin() + i);
 		else return false;
 	}
+
+	friend ostream& operator<<(ostream &os, const Category &value);
+	friend istream& operator>>(istream &is, Category &value);
 };
+
+ostream& operator<<(ostream &os, const Category &value) {
+	int size = value.namesCategories.size(), strSize;
+	os.write(reinterpret_cast<char *>(&size), sizeof(int));
+	for (int i = 0; i < value.namesCategories.size(); i++) {
+		strSize = value.namesCategories[i].size();
+		os.write(reinterpret_cast<char *>(&strSize), sizeof(int));
+		os << value.namesCategories[i].c_str();
+	}
+	strSize = value.name.size();
+	os.write(reinterpret_cast<char *>(&strSize), sizeof(int));
+	os << value.name.c_str();
+	return os;
+}
+
+istream& operator >> (istream &is, Category &value) {
+	int size, strSize;
+	char *temp = nullptr;
+	is.read(reinterpret_cast<char *>(&size), sizeof(int));
+	for (int i = 0; i < size; i++) {
+		is.read(reinterpret_cast<char *>(&strSize), sizeof(int));
+		temp = new char[strSize + 1];
+		is.read(reinterpret_cast<char *>(temp), sizeof(strSize));
+		value.namesCategories.push_back(temp);
+		if (temp != nullptr) delete temp;
+		temp = nullptr;
+	}
+	is.read(reinterpret_cast<char *>(&strSize), sizeof(int));
+	if (temp != nullptr) delete temp;
+	temp = new char[strSize + 1];
+	is.read(reinterpret_cast<char *>(temp), sizeof(strSize));
+	temp[strSize] = '\0';
+	value.name = temp;
+	if (temp != nullptr) delete temp;
+	temp = nullptr;
+	return is;
+}
 
 class AllCategory /*Всi категорiї*/ {	
 public:
@@ -463,6 +507,11 @@ public:
 		}
 		else return false;
 	}
+
+	bool SetTermOfConsumption(const Date &date) {
+		return SetTermOfConsumption(date.GetDay(), date.GetMonth(), date.GetYear());
+	}
+
 
 	bool SetPrice(const float &price) {
 		if (price > 0) {
@@ -815,19 +864,21 @@ public:
 			{ string("дозвiл на додавання новох працiвникiв") , string("Додати нового працiвника") },
 			{ string("дозвiл на звiльнення працiвникiв") , string("Звiльнитит працiвникiв") },
 			{ string("дозвiл на редагування типiв працiвникiв") , string("Ви в меню редагування типiв працiвникiв"), string("Меню редагування типiв працiвникiв"), string("Редагувати типи працiвникiв"), 3, new Permission[3]{
+				{ string("дозвiл на додавання типу працiвника") , string("Додати новий тип працівника") },
 				{ string("дозвiл на редагування iменi типу працiвника") , string("Редагувати iм'я типу працiвника") },
 				{ string("дозвiл на редагування зарплати типу працiвника") , string("Редагувати зарплату  типу працiвника") },
+				{ string("дозвiл на видалення типу працiвника") , string("Видалити типи працівників") },
 				{ string("дозвiл на редагування дозволiв"), string("Ви в меню редагування дозволiв типу працiвника"), string("Меню редагувння дозволiв типу працiвника"), string("Редагувати дозволи типу працiвника"), 2, new Permission[2]{
-						{string("дозвiл на дозвiл на редагування продуктiв"), 9 , new Permission[9]{
-							{ string("дозвiл на дозвiл на додавння продуктiв") },
-							{ string("дозвiл на дозвiл на редактування кiлькостi продукту") },
-							{ string("дозвiл на дозвiл на редагування цiни продукту") },
-							{ string("дозвiл на дозвiл на редагування термiну споживання продукту") },
-							{ string("дозвiл на дозвiл на редагування категорiї продукту") },
-							{ string("дозвiл на дозвiл на редагування пiд категорiї продукту") },
-							{ string("дозвiл на дозвiл на редагування iменi продукту") },
-							{ string("дозвiл на дозвiл на покупку продукту") },
-							{ string("дозвiл на дозвiл на редагування категорiй продуктiв"), 4, new Permission[4]{
+						{string("дозвiл на редагування дозволу редагування продуктiв"), string("Ви в меню дозволів на редагування пролуктів"), string("Меню редагування дозволів на редагування продуктів"), string("Редагувати дозвіл на редагування продуктів"), 9 , new Permission[9]{
+							{ string("дозвiл на редагування дозволу на додавння продуктiв")},
+							{ string("дозвiл на редагування дозволу на редактування кiлькостi продукту") },
+							{ string("дозвiл на редагування дозволу на редагування цiни продукту") },
+							{ string("дозвiл на редагування дозволу на редагування термiну споживання продукту") },
+							{ string("дозвiл на редагування дозволу на редагування категорiї продукту") },
+							{ string("дозвiл на редагування дозволу на редагування пiд категорiї продукту") },
+							{ string("дозвiл на редагування дозволу на редагування iменi продукту") },
+							{ string("дозвiл на редагування дозволу на покупку продукту") },
+							{ string("дозвiл на редагування дозволу на редагування категорiй продуктiв"), 4, new Permission[4]{
 								{ string("дозвiл на дозвiл на додавання нової категорiї продуктiв") },
 								{ string("дозвiл на дозвiл на переiменування категорiї продуктiв") },
 								{ string("дозвiл на дозвiл на видалення категорiї продуктiв") },
@@ -1238,6 +1289,8 @@ public:
 	friend string SetPidCategoryOfProduct(Shop &shop);
 	friend string SetNameOfProduct(Shop &shop);
 	friend string BuyProduct(Shop &shop);
+	friend bool SaveProducts(ofstream & FileToSave, Shop &shop);
+	friend bool LoadProducts(ifstream & FileToLoad, Shop &shop);
 };
 
 void printHeader(const string& str) {
@@ -2075,6 +2128,224 @@ void PerhodnikInputToMenu() {
 	gotoxy(0, GetPosCur().y + 1);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////
+				// Збереження стандартних змінних в файл у бінарному вигляді
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool SaveIntBIN(ofstream & FileToSave, int itg) {
+	if (FileToSave.is_open()) {
+		FileToSave.write(reinterpret_cast<char *>(&itg), sizeof(int));
+		return true;
+	}
+	else return false;
+}
+
+bool SaveFloatBIN(ofstream & FileToSave, float itg) {
+	if (FileToSave.is_open()) {
+		FileToSave.write(reinterpret_cast<char *>(&itg), sizeof(float));
+		return true;
+	}
+	else return false;
+}
+
+bool SaveStringBIN(ofstream & FileToSave, string str) {
+	if (FileToSave.is_open()) {
+		SaveIntBIN(FileToSave, str.size());
+		FileToSave << str.c_str();
+		return true;
+	}
+	else return false;
+}
+
+bool SaveDateBIN(ofstream &FileToSave, Date dtd) {
+	if (FileToSave.is_open()) {
+		SaveIntBIN(FileToSave, dtd.GetYear());
+		SaveIntBIN(FileToSave, dtd.GetMonth());
+		SaveIntBIN(FileToSave, dtd.GetDay());
+		return true;
+	}
+	else return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+						// Виведення з бінарного файлу стандартних змінних
+////////////////////////////////////////////////////////////////////////////////////////////
+
+int LoadIntBIN(ifstream & FileToLoad, bool *state = nullptr) {
+	int tmp;
+	if (FileToLoad.is_open()) {
+		FileToLoad.read(reinterpret_cast<char *>(&tmp), sizeof(int));
+		if (state != nullptr) *state = true;
+		return tmp;
+	}
+	else if (state != nullptr) *state = false;
+	return -1;
+}
+
+float LoadFloatBIN(ifstream & FileToLoad, bool *state = nullptr) {
+	float tmp;
+	if (FileToLoad.is_open()) {
+		FileToLoad.read(reinterpret_cast<char *>(&tmp), sizeof(float));
+		if (state != nullptr) *state = true;
+		return tmp;
+	}
+	else if (state != nullptr) *state = false;
+	return -1;
+}
+
+string LoadStringBIN(ifstream & FileToLoad, bool *state = nullptr) {
+	int strSize;
+	char *temp;
+	if (FileToLoad.is_open()) {
+		strSize = LoadIntBIN(FileToLoad);
+		temp = new char[strSize + 1];
+		FileToLoad.read(reinterpret_cast<char *>(temp), strSize);
+		temp[strSize] = '\0';
+		if (state != nullptr) *state = true;
+		return temp;
+	}
+	else if (state != nullptr) *state = false;
+	return "";
+}
+
+Date LoadDateBIN(ifstream &FileToLoad, bool *state = nullptr) {
+	Date temp;
+	if (FileToLoad.is_open()) {
+
+		temp.SetYear(LoadIntBIN(FileToLoad));
+		temp.SetMonth(LoadIntBIN(FileToLoad));
+		temp.SetDay(LoadIntBIN(FileToLoad));
+
+		if (state != nullptr) *state = true;
+		return temp;
+	}
+	else if (state != nullptr) *state = false;
+	return temp;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+				// Збереження екземплярів классу в бінарний файл
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool SaveCategories(ofstream & FileToSave) {
+	if (FileToSave.is_open()) {
+		SaveIntBIN(FileToSave, ACtg.ctg.size());
+
+		for (int i = 0; i < ACtg.ctg.size(); i++)
+		{
+			SaveStringBIN(FileToSave, ACtg.ctg[i].GetName());
+			SaveIntBIN(FileToSave, ACtg.ctg[i].GetCountOfPidCategories());
+			for (int s = 0; s < ACtg.ctg[i].GetCountOfPidCategories(); s++) {
+				SaveStringBIN(FileToSave, ACtg.ctg[i].GetNamePidCategory(s));
+			}
+		}
+		return true;
+	}
+	else return false;
+}
+
+bool SaveProducts(ofstream & FileToSave, Shop &shop) {
+	if (FileToSave.is_open()) {
+		SaveIntBIN(FileToSave, shop.products.products.size());
+
+		for (int i = 0; i < shop.products.products.size(); i++)
+		{
+			SaveStringBIN(FileToSave, shop.products.products[i].GetName());
+			SaveDateBIN(FileToSave, shop.products.products[i].GetTermOfConsumption());
+			SaveFloatBIN(FileToSave, shop.products.products[i].GetPrice());
+			SaveIntBIN(FileToSave, shop.products.products[i].GetCount());
+			SaveIntBIN(FileToSave, shop.products.products[i].GetCategory());
+			SaveIntBIN(FileToSave, shop.products.products[i].GetPidCategory());
+		}
+		return true;
+	}
+	else return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+				// Виведення з бінарного файлу екземплярів классу
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool LoadCategories(ifstream & FileToLoad) {
+	if (FileToLoad.is_open()) {
+		
+		int size, PIDsize;
+
+		size = LoadIntBIN(FileToLoad);
+
+		for (int i = 0; i < size; i++)
+		{
+			ACtg.ctg.push_back(LoadStringBIN(FileToLoad));
+			PIDsize = LoadIntBIN(FileToLoad);
+
+			for (int s = 0; s < PIDsize; s++)
+				ACtg.ctg[i].AddPidCategory(LoadStringBIN(FileToLoad));
+		
+		}
+		return true;
+	}
+	else return false;
+}
+
+bool LoadProducts(ifstream & FileToLoad, Shop &shop) {
+	if (FileToLoad.is_open()) {
+		int size = LoadIntBIN(FileToLoad);
+
+		for (int i = 0; i < size; i++)
+		{
+			shop.products.products.push_back({});
+
+			shop.products.products[i].SetName(LoadStringBIN(FileToLoad));
+			shop.products.products[i].SetTermOfConsumption(LoadDateBIN(FileToLoad));
+			shop.products.products[i].SetPrice(LoadFloatBIN(FileToLoad));
+			shop.products.products[i].SetCount(LoadIntBIN(FileToLoad));
+			shop.products.products[i].SetCategory(LoadIntBIN(FileToLoad), LoadIntBIN(FileToLoad));
+		}
+		return true;
+	}
+	else return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+						// Повне збереження в файл і виведення з файлу інформації 
+////////////////////////////////////////////////////////////////////////////////////////////
+
+bool LoadOfFile(const string &my, Shop &shop) {
+	ifstream FileToLoad;
+	FileToLoad.open(my, ios::binary);
+
+	if (FileToLoad.is_open()) {
+		if (LoadCategories(FileToLoad)) {
+			if (LoadProducts(FileToLoad, shop)) {
+				return true;
+			}
+			else return false;
+		}
+		else return false;
+	}
+	else return false;
+}
+
+bool SaveAll(const string &my, Shop &shop) {
+	ofstream FileToSave;
+	FileToSave.open(my, ios::binary);
+
+	if (FileToSave.is_open()) {
+		if (SaveCategories(FileToSave)) {
+			if (SaveProducts(FileToSave, shop)) {
+				return true;
+			}
+			else return false;
+		}
+		else return false;
+	}
+	else return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+									// ФУНКЦІЇ В МЕНЮ
+////////////////////////////////////////////////////////////////////////////////////////////
+
 string AddNewCategory(Shop &shop) {
 	cl();
 	printHeader("Додавання нової категорiї продуктiв");
@@ -2572,7 +2843,7 @@ string SetPriceProduct(Shop &shop) {
 			else if (INM == 1) goto SelectProduct;
 			else if (INM == 3) return "Ціна продукту не змінилась";
 
-			msg = "Змінилась ціна продукту з " + to_string(shop.products.products[MM].GetCount()) + " на " + to_string(PRICE);
+			msg = "Змінилась ціна продукту з " + to_string(shop.products.products[MM].GetPrice()) + " на " + to_string(PRICE);
 			shop.products.products[MM].SetCount(PRICE);
 
 			return msg;
@@ -3060,12 +3331,13 @@ int main() {
 	
 	
 	SetVisibleCursor(false);
-
+	
 	/*GetDate();
 
 	return 0;
 */
 	Shop shop;
+	LoadOfFile(FILE_TO_SAVE, shop);
 	InitLLC(shop);
 	// Init(shop);
 	//Trader * user = LogIn(shop);
@@ -3151,6 +3423,7 @@ int main() {
 		}
 	}
 
+	SaveAll(FILE_TO_SAVE, shop);
 
 	return 0;
 }
